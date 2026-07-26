@@ -37,4 +37,31 @@ export type TUser = {
   name: string;
 };
 
+export type TLoginData = {
+  email: string;
+  password: string;
+};
+
+export type TRegisterData = {
+  email: string;
+  name: string;
+  password: string;
+};
+
+export type TNewOrder = {
+  _id: string;
+  status: string;
+  name: string;
+  owner: {
+    name: string;
+    email: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  number: number;
+  price: number;
+};
+
 export type TTabMode = 'bun' | 'sauce' | 'main';
