@@ -5,9 +5,10 @@ import {
   logoutApi,
   registerUserApi,
   updateUserApi
-} from '../utils/burger-api';
-import { deleteCookie, getCookie, setCookie } from '../utils/cookie';
-import { TLoginData, TRegisterData, TUser } from '../utils/types';
+} from '../../utils/burger-api';
+import { deleteCookie, getCookie, setCookie } from '../../utils/cookie';
+import { TLoginData, TRegisterData, TUser } from '../../utils/types';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 type AuthState = {
   user: TUser | null;
@@ -33,19 +34,6 @@ const saveTokens = (accessToken: string, refreshToken: string) => {
 const clearTokens = () => {
   deleteCookie('accessToken');
   localStorage.removeItem('refreshToken');
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) return error.message;
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message;
-  }
-  return 'Произошла неизвестная ошибка';
 };
 
 export const loginUser = createAsyncThunk<

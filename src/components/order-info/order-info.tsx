@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from '../../services/store';
 import {
   clearCurrentOrder,
   fetchOrderByNumber
-} from '../../slices/ordersSlice';
+} from '../../services/slices/ordersSlice';
 
 export const OrderInfo: FC = () => {
   const dispatch = useDispatch();

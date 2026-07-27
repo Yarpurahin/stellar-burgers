@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { getIngredientsApi } from '../utils/burger-api';
-import { TIngredient } from '../utils/types';
+import { getIngredientsApi } from '../../utils/burger-api';
+import { TIngredient } from '../../utils/types';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 type IngredientsState = {
   ingredients: TIngredient[];
@@ -12,19 +13,6 @@ const initialState: IngredientsState = {
   ingredients: [],
   isLoading: false,
   error: null
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) return error.message;
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message;
-  }
-  return 'Не удалось загрузить ингредиенты';
 };
 
 export const fetchIngredients = createAsyncThunk(

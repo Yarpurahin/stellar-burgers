@@ -1,7 +1,10 @@
 import { ProfileUI } from '@ui-pages';
 import { ChangeEvent, FC, SyntheticEvent, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../services/store';
-import { clearUpdateUserError, updateUser } from '../../slices/authSlice';
+import {
+  clearUpdateUserError,
+  updateUser
+} from '../../services/slices/authSlice';
 import { TRegisterData } from '../../utils/types';
 
 export const Profile: FC = () => {

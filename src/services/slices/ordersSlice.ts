@@ -4,8 +4,9 @@ import {
   getOrderByNumberApi,
   getOrdersApi,
   orderBurgerApi
-} from '../utils/burger-api';
-import { TNewOrder, TOrder } from '../utils/types';
+} from '../../utils/burger-api';
+import { TNewOrder, TOrder } from '../../utils/types';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 type RequestStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 
@@ -59,19 +60,6 @@ const initialState: OrdersState = {
     status: 'idle',
     error: null
   }
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) return error.message;
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message;
-  }
-  return 'Ошибка загрузки данных';
 };
 
 export const fetchFeedOrders = createAsyncThunk(

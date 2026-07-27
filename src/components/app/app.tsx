@@ -14,7 +14,6 @@ import styles from './app.module.css';
 import {
   BrowserRouter,
   Location,
-  Navigate,
   Route,
   Routes,
   useLocation,
@@ -24,16 +23,14 @@ import { AppHeader, IngredientDetails, Modal, OrderInfo } from '@components';
 import { Preloader } from '@ui';
 import { FC, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from '../../services/store';
-import { fetchIngredients } from '../../slices/ingredientsSlice';
-import { checkUserAuth } from '../../slices/authSlice';
+import { fetchIngredients } from '../../services/slices/ingredientsSlice';
+import { checkUserAuth } from '../../services/slices/authSlice';
+import { GuestRoute, ProtectedRoute } from '../../utils/routes';
 
 type RouteLocationState = {
   background?: Location;
   from?: Location;
 };
-
-const getLocationPath = (location?: Location) =>
-  location ? `${location.pathname}${location.search}${location.hash}` : '/';
 
 const AppContent: FC = () => {
   const dispatch = useDispatch();
@@ -43,8 +40,6 @@ const AppContent: FC = () => {
   const { ingredients, isLoading, error } = useSelector(
     (state) => state.ingredients
   );
-  const { user, isAuthChecked } = useSelector((state) => state.auth);
-
   const locationState = location.state as RouteLocationState | null;
   const background = locationState?.background;
 
@@ -73,7 +68,9 @@ const AppContent: FC = () => {
       <ConstructorPage />
     );
 
-  const guestRedirectPath = getLocationPath(locationState?.from);
+  const orderNumber = String(
+    useSelector((state) => state.orders.currentOrder.order?.number)
+  );
 
   return (
     <div className={styles.app}>
@@ -109,88 +106,58 @@ const AppContent: FC = () => {
         <Route
           path='/login'
           element={
-            !isAuthChecked ? (
-              <Preloader />
-            ) : user ? (
-              <Navigate to={guestRedirectPath} replace />
-            ) : (
+            <ProtectedRoute>
               <Login />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path='/register'
           element={
-            !isAuthChecked ? (
-              <Preloader />
-            ) : user ? (
-              <Navigate to={guestRedirectPath} replace />
-            ) : (
+            <ProtectedRoute>
               <Register />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path='/forgot-password'
           element={
-            !isAuthChecked ? (
-              <Preloader />
-            ) : user ? (
-              <Navigate to={guestRedirectPath} replace />
-            ) : (
+            <ProtectedRoute>
               <ForgotPassword />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path='/reset-password'
           element={
-            !isAuthChecked ? (
-              <Preloader />
-            ) : user ? (
-              <Navigate to={guestRedirectPath} replace />
-            ) : (
+            <ProtectedRoute>
               <ResetPassword />
-            )
+            </ProtectedRoute>
           }
         />
 
         <Route
           path='/profile'
           element={
-            !isAuthChecked ? (
-              <Preloader />
-            ) : user ? (
+            <GuestRoute>
               <Profile />
-            ) : (
-              <Navigate to='/login' state={{ from: location }} replace />
-            )
+            </GuestRoute>
           }
         />
         <Route
           path='/profile/orders'
           element={
-            !isAuthChecked ? (
-              <Preloader />
-            ) : user ? (
+            <GuestRoute>
               <ProfileOrders />
-            ) : (
-              <Navigate to='/login' state={{ from: location }} replace />
-            )
+            </GuestRoute>
           }
         />
         <Route
           path='/profile/orders/:number'
           element={
-            !isAuthChecked ? (
-              <Preloader />
-            ) : user ? (
-              <main className={styles.detailPageWrap}>
-                <OrderInfo />
-              </main>
-            ) : (
-              <Navigate to='/login' state={{ from: location }} replace />
-            )
+            <GuestRoute>
+              <OrderInfo />
+            </GuestRoute>
           }
         />
 
@@ -210,7 +177,7 @@ const AppContent: FC = () => {
           <Route
             path='/feed/:number'
             element={
-              <Modal title='Детали заказа' onClose={handleModalClose}>
+              <Modal title={orderNumber} onClose={handleModalClose}>
                 <OrderInfo />
               </Modal>
             }
@@ -218,15 +185,11 @@ const AppContent: FC = () => {
           <Route
             path='/profile/orders/:number'
             element={
-              !isAuthChecked ? (
-                <Preloader />
-              ) : user ? (
-                <Modal title='Детали заказа' onClose={handleModalClose}>
+              <GuestRoute>
+                <Modal title={orderNumber} onClose={handleModalClose}>
                   <OrderInfo />
                 </Modal>
-              ) : (
-                <Navigate to='/login' state={{ from: location }} replace />
-              )
+              </GuestRoute>
             }
           />
         </Routes>

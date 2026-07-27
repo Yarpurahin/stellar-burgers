@@ -1,15 +1,9 @@
 import { FC, SyntheticEvent, useEffect, useState } from 'react';
 import { LoginUI } from '@ui-pages';
-import { Location, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from '../../services/store';
-import { clearAuthError, loginUser } from '../../slices/authSlice';
-
-type LocationState = {
-  from?: Location;
-};
-
-const getLocationPath = (location?: Location) =>
-  location ? `${location.pathname}${location.search}${location.hash}` : '/';
+import { clearAuthError, loginUser } from '../../services/slices/authSlice';
+import { getLocationPath, LocationState } from '../../utils/locationPath';
 
 export const Login: FC = () => {
   const dispatch = useDispatch();
