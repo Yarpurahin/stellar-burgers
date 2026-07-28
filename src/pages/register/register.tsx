@@ -1,18 +1,16 @@
 import { FC, SyntheticEvent, useEffect, useState } from 'react';
 import { RegisterUI } from '@ui-pages';
-import { Location, useLocation, useNavigate } from 'react-router-dom';
+
 import { useDispatch, useSelector } from '../../services/store';
 import { clearAuthError, registerUser } from '../../services/slices/authSlice';
-import { getLocationPath, LocationState } from '../../utils/locationPath';
 
 export const Register: FC = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const error = useSelector((state) => state.auth.error);
 
   useEffect(() => {
@@ -22,7 +20,9 @@ export const Register: FC = () => {
   const handleSubmit = async (event: SyntheticEvent) => {
     event.preventDefault();
 
-    if (!userName.trim() || !email.trim() || !password) return;
+    if (!userName.trim() || !email.trim() || !password) {
+      return;
+    }
 
     try {
       await dispatch(
@@ -32,12 +32,7 @@ export const Register: FC = () => {
           password
         })
       ).unwrap();
-
-      const state = location.state as LocationState | null;
-      navigate(getLocationPath(state?.from), { replace: true });
-    } catch {
-      // Ошибка отображается из state.auth.error.
-    }
+    } catch {}
   };
 
   return (
