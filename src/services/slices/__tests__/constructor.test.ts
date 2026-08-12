@@ -5,7 +5,7 @@ import {
   clearConstructor
 } from '../constructorSlice';
 
-import burgerConstructorReducer from '../constructorSlice'
+import burgerConstructorReducer from '../constructorSlice';
 
 const mockBun = {
   _id: '1',
@@ -48,10 +48,7 @@ describe('burgerConstructor reducer', () => {
   });
 
   test('добавление булки', () => {
-    const state = burgerConstructorReducer(
-      undefined,
-      addIngredient(mockBun)
-    );
+    const state = burgerConstructorReducer(undefined, addIngredient(mockBun));
 
     expect(state.bun).toEqual({
       ...mockBun,
@@ -101,9 +98,7 @@ describe('burgerConstructor reducer', () => {
 
     expect(state.ingredients).toHaveLength(1);
 
-    expect(state.ingredients[0].id).toBe(
-      'ingredient-2'
-    );
+    expect(state.ingredients[0].id).toBe('ingredient-2');
   });
 
   test('перемещение ингредиента', () => {
@@ -121,10 +116,7 @@ describe('burgerConstructor reducer', () => {
 
     const initialState = {
       bun: null,
-      ingredients: [
-        firstIngredient,
-        secondIngredient
-      ]
+      ingredients: [firstIngredient, secondIngredient]
     };
 
     const state = burgerConstructorReducer(
@@ -135,10 +127,7 @@ describe('burgerConstructor reducer', () => {
       })
     );
 
-    expect(state.ingredients).toEqual([
-      secondIngredient,
-      firstIngredient
-    ]);
+    expect(state.ingredients).toEqual([secondIngredient, firstIngredient]);
   });
 
   test('очищение конструктора', () => {
@@ -155,10 +144,7 @@ describe('burgerConstructor reducer', () => {
       ]
     };
 
-    const state = burgerConstructorReducer(
-      initialState,
-      clearConstructor()
-    );
+    const state = burgerConstructorReducer(initialState, clearConstructor());
 
     expect(state).toEqual({
       bun: null,

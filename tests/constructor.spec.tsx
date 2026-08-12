@@ -1,12 +1,42 @@
 import { test, expect, Page } from '@playwright/test';
 
-test.describe('ингредиенты', () => {
-  test.beforeEach('мок ингредиентов', async ({ page }) => {
-    await page.routeFromHAR('./tests/hars/ingredients.har', {
-      url: '**/api/ingredients*',
-      update: false,
-    });
+const bunName = 'Краторная булка N-200i';
+const ingredientName = 'Биокотлета из марсианской Магнолии';
 
+test.beforeEach(async ({ page, context }) => {
+  await page.routeFromHAR('./tests/hars/ingredients.har', {
+    url: '**/api/ingredients*',
+    update: false
+  });
+
+  await page.routeFromHAR('./tests/hars/user.har', {
+    url: '**/api/auth/user',
+    update: false
+  });
+
+  await page.routeFromHAR('./tests/hars/orders.har', {
+    url: '**/api/orders**',
+    update: false
+  });
+
+  await context.addCookies([
+    {
+      name: 'accessToken',
+      value: 'Bearer mock-access-token',
+      url: 'http://localhost:4000'
+    }
+  ]);
+
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'refreshToken',
+      'mock-refresh-token'
+    );
+  });
+});
+
+test.describe('ингредиенты', () => {
+  test.beforeEach('переход на "/"', async ({page}) => {
     await page.goto('/');
   });
 
@@ -63,12 +93,8 @@ test.describe('ингредиенты', () => {
     )
     .toContainText('Биокотлета из марсианской Магнолии');
 
-    await expect(
-      page
-      .locator('.text')
-      .filter({hasText: '2934'})
-    )
-    .toContainText('2934');
+    await expect(page.getByTestId('burger-price'))
+      .toContainText('2934');
   });
 
   test('открытие/закрытие модалки ингредиента', async ({page}) => {
@@ -76,9 +102,15 @@ test.describe('ингредиенты', () => {
       has: page.getByText('Краторная булка N-200i')
     }).click();
 
+    const modal = page.getByRole('dialog');
+
+    await expect(modal).toBeVisible();
+
     await expect(
-      page.getByRole('heading', { name: 'Детали ингредиента' })
-    ).toBeVisible();
+    modal.getByText('Краторная булка N-200i', {
+      exact: true
+    })
+  ).toBeVisible();
 
     await page.getByTestId('modal-close').click();
 
@@ -87,48 +119,10 @@ test.describe('ингредиенты', () => {
   });
 })
 
-const orderNumber = 12345;
-
-const mockUser = {
-  success: true,
-  user: {
-    email: 'test@test.com',
-    name: 'Test User'
-  }
-};
-
-const mockOrder = {
-  success: true,
-  name: 'test-order',
-  order:
-    {
-      _id: 'test-order-id',
-      ingredients: [],
-      owner: 'test-owner',
-      status: 'done',
-      name: 'test-burger',
-      createdAt: '2026-08-11T00:00:00.000Z',
-      updatedAt: '2026-08-11T00:00:00.000Z',
-      number: orderNumber
-    }
-};
-
-const mockFeed = {
-  success: true,
-  orders: [],
-  total: 0,
-  totalToday: 0
-};
-
-const mockUserOrders = {
-  success: true,
-  orders: []
-};
-
 const assembleBurger = async (page: Page) => {
   const bun = page
     .getByRole('listitem')
-    .filter({ hasText: 'Краторная булка N-200i' });
+    .filter({ hasText: bunName });
 
   await bun
     .getByRole('button', { name: 'Добавить' })
@@ -136,7 +130,7 @@ const assembleBurger = async (page: Page) => {
 
   const ingredient = page
     .getByRole('listitem')
-    .filter({ hasText: 'Биокотлета из марсианской Магнолии' });
+    .filter({ hasText: ingredientName });
 
   await ingredient
     .getByRole('button', { name: 'Добавить' })
@@ -146,82 +140,51 @@ const assembleBurger = async (page: Page) => {
 const createOrder = async (page: Page) => {
   await assembleBurger(page);
 
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/orders') &&
+      response.request().method() === 'POST'
+  );
+
   await page
     .getByRole('button', { name: 'Оформить заказ' })
     .click();
 
+  const response = await responsePromise;
+
+  const data = await response.json();
+
   await expect(
-    page.getByText(String(orderNumber))
+    page.getByText(String(data.order.number))
   ).toBeVisible();
+
+  return data;
 };
 
 test.describe('заказ', () => {
-  test.beforeEach(async ({ page, context }) => {
-    await page.routeFromHAR('./tests/hars/ingredients.har', {
-      url: '**/api/ingredients*',
-      update: false
-    });
-
-    await page.route('**/auth/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockUser)
+  test.beforeEach(async({page}) => {
+    await page.goto('/', {
+        waitUntil: 'domcontentloaded'
       });
-    });
-
-    await page.route('**/orders/all', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockFeed)
-      });
-    });
-
-    await page.route(`**/orders`, async (route) => {
-      if (route.request().method() === 'POST') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(mockOrder)
-        });
-
-        return;
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockUserOrders)
-      });
-    });
-
-    await context.addCookies([
-      {
-        name: 'accessToken',
-        value: 'Bearer mock-access-token',
-        url: 'http://localhost:4000'
-      }
-    ]);
-
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        'refreshToken',
-        'mock-refresh-token'
-      );
-    });
-
-  });
+  })
 
   test('пользователь авторизован', async ({ page }) => {
-    await page.goto('/', {
-      waitUntil: 'domcontentloaded'
-    });
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes('/auth/user') &&
+      response.request().method() === 'GET'
+  );
 
-    await expect(
-      page.getByText(mockUser.user.name)
-    ).toBeVisible();
-  });
+  const response = await responsePromise;
+  const data = await response.json();
+
+  expect(response.status()).toBe(200);
+  expect(data.success).toBe(true);
+
+  await expect(
+    page.getByText(data.user.name)
+  ).toBeVisible();
+});
 
   test('токен авторизации подставляется в запрос', async ({ page }) => {
     const requestPromise = page.waitForRequest(
@@ -230,8 +193,6 @@ test.describe('заказ', () => {
         request.method() === 'GET'
     );
 
-    await page.goto('/');
-
     const request = await requestPromise;
 
     expect(request.headers().authorization).toBe(
@@ -239,113 +200,95 @@ test.describe('заказ', () => {
     );
   });
 
-  test('бургер собирается', async ({ page }) => {
-    await page.goto('/', {
-      waitUntil: 'domcontentloaded'
-    });
+ test('бургер собирается', async ({ page }) => {
 
-    await assembleBurger(page);
+  await assembleBurger(page);
 
-    await expect(
-      page.getByText('Краторная булка N-200i (верх)')
-    ).toBeVisible();
-
-    await expect(
-      page.locator(
-        '.constructor-element__text',
-        { hasText: 'Биокотлета из марсианской Магнолии' }
-      )
-    ).toBeVisible();
-  });
-
-  test('по кнопке "Оформить заказ" отправляется запрос создания заказа', async ({
+  await expect(
     page
-  }) => {
-    await page.goto('/', {
-      waitUntil: 'domcontentloaded'
-    });
+      .locator('.constructor-element__text')
+      .filter({ hasText: ingredientName })
+  ).toBeVisible();
+});
 
-    await assembleBurger(page);
+  test('по кнопке "Оформить заказ" создаётся заказ', async ({ page }) => {
 
-    const requestPromise = page.waitForRequest(
-      (request) =>
-        request.url().endsWith('/orders') &&
-        request.method() === 'POST'
-    );
+  await assembleBurger(page);
 
-    await page
-      .getByRole('button', { name: 'Оформить заказ' })
-      .click();
+  const requestPromise = page.waitForRequest(
+    (request) =>
+      request.url().endsWith('/orders') &&
+      request.method() === 'POST'
+  );
 
-    const request = await requestPromise;
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/orders') &&
+      response.request().method() === 'POST'
+  );
 
-    expect(request.method()).toBe('POST');
+  await page
+    .getByRole('button', { name: 'Оформить заказ' })
+    .click();
 
-    const body = request.postDataJSON();
+  const request = await requestPromise;
+  const response = await responsePromise;
 
-    expect(body.ingredients).toBeDefined();
-    expect(body.ingredients.length).toBeGreaterThan(0);
-  });
+  const requestBody = request.postDataJSON();
+  const responseBody = await response.json();
 
-  test('после создания заказа открывается модалка', async ({
-    page
-  }) => {
-    await page.goto('/', {
-      waitUntil: 'domcontentloaded'
-    });
-    
-    await createOrder(page);
+  expect(requestBody.ingredients).toBeDefined();
+  expect(requestBody.ingredients.length).toBeGreaterThan(0);
 
-    await expect(
-      page.getByTestId('modal-close')
-    ).toBeVisible();
-  });
+  expect(response.status()).toBe(200);
+  expect(responseBody.success).toBe(true);
+  expect(responseBody.order).toBeDefined();
+});
 
-  test('в модалке отображается правильный номер заказа', async ({
-    page
-  }) => {
-    await page.goto('/', {
-      waitUntil: 'domcontentloaded'
-    });
-    
-    await createOrder(page);
+  test('после создания заказа открывается модалка с номером заказа', async ({
+  page
+}) => {
 
-    await expect(
-      page.getByText(String(orderNumber))
-    ).toBeVisible();
-  });
+  const orderData = await createOrder(page);
 
-  test('конструктор очищается', async ({
-    page
-  }) => {
-    await page.goto('/', {
-      waitUntil: 'domcontentloaded'
-    });
-    
-    await createOrder(page);
+  const modal = page.getByRole('dialog');
 
-    await expect(
-      page.getByText('Выберите булки')
-    ).toHaveCount(2);
+  await expect(modal).toBeVisible();
 
-    await expect(
-      page.getByText('Выберите начинку')
-    ).toBeVisible();
-  });
+  await expect(
+    modal.getByText(String(orderData.order.number))
+  ).toBeVisible();
+});
+
+  test('после создания заказа конструктор очищается', async ({ page }) => {
+
+  await createOrder(page);
+
+  await expect(
+    page.getByTestId('choose-bun')
+  ).toHaveCount(2);
+
+  await expect(
+    page.getByTestId('choose-filling')
+  ).toBeVisible();
+});
 
   test('модалка заказа закрывается по нажатию на крестик', async ({
-    page
-  }) => {
-    await page.goto('/', {
-      waitUntil: 'domcontentloaded'
-    });
-    
-    await createOrder(page);
+  page
+}) => {
 
-    await page.getByTestId('modal-close').click();
+  const orderData = await createOrder(page);
 
-    await expect(
-      page.getByText(String(orderNumber))
-    ).toHaveCount(0);
-  });
+  const modal = page.getByRole('dialog');
+
+  await expect(modal).toBeVisible();
+
+  await modal.getByTestId('modal-close').click();
+
+  await expect(modal).toHaveCount(0);
+
+  await expect(
+    page.getByText(String(orderData.order.number))
+  ).toHaveCount(0);
+});
 });
